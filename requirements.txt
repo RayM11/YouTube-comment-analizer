@@ -1,0 +1,9 @@
+Django>=5.0
+djangorestframework>=3.15
+python-dotenv>=1.0
+numpy>=1.26
+scikit-learn>=1.4
+vaderSentiment>=3.3.2
+# Opcional (comentable en desarrollo temprano)
+transformers>=4.41
+torch>=2.2
