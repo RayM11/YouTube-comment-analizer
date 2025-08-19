@@ -1,14 +1,14 @@
 from typing import List, Dict
 import math
 
-# Fallback VADER (rápido). Si está, lo usamos; si no, hacemos regla trivial.
+# Lightweight fallback: VADER
 try:
     from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
     _HAS_VADER = True
 except Exception:
     _HAS_VADER = False
 
-# Opcional Transformers (CardiffNLP). Solo se usa si settings.USE_TRANSFORMERS = True y está instalado.
+# Optional: Transformers sentiment
 try:
     from transformers import AutoTokenizer, AutoModelForSequenceClassification
     import torch
@@ -18,25 +18,30 @@ except Exception:
 
 
 class SentimentAnalyzer:
-    def __init__(self, use_transformers: bool = False):
+    """Abstraction over sentiment backends.
+    - Tries Transformers if requested (and libs/models available).
+    - Falls back to VADER (lexicon-based).
+    - If neither available, returns neutral.
+    """
+    def __init__(self, use_transformers: bool = True, model_name: str = None):
         self.use_transformers = use_transformers and _HAS_TRANSFORMERS
         self._transformers_ready = False
+        self.model_name = model_name or 'cardiffnlp/twitter-xlm-roberta-base-sentiment'
+
         if self.use_transformers:
             try:
-                # Modelo multilingüe recomendado (CardiffNLP). Requiere pesos en caché o internet previo.
-                self.tokenizer = AutoTokenizer.from_pretrained('cardiffnlp/twitter-xlm-roberta-base-sentiment')
-                self.model = AutoModelForSequenceClassification.from_pretrained('cardiffnlp/twitter-xlm-roberta-base-sentiment')
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+                self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name)
                 self.model.eval()
                 self._transformers_ready = True
             except Exception:
-                # Si falla la carga, caemos a VADER
                 self.use_transformers = False
 
         if not self.use_transformers:
             if _HAS_VADER:
                 self.vader = SentimentIntensityAnalyzer()
             else:
-                self.vader = None  # fallback trivial si no hay VADER
+                self.vader = None
 
     def _softmax(self, x):
         m = max(x)
@@ -45,27 +50,28 @@ class SentimentAnalyzer:
         return [v/s for v in exps]
 
     def predict_one(self, text: str) -> Dict:
+        # 1) Transformers (if available)
         if self.use_transformers and self._transformers_ready:
             with torch.no_grad():
                 inputs = self.tokenizer(text, return_tensors='pt', truncation=True, padding=True)
-                logits = self.model(**inputs).logits[0].tolist()  # [neg, neu, pos] en este modelo
+                logits = self.model(**inputs).logits[0].tolist()  # [neg, neu, pos] (CardiffNLP)
                 probs = self._softmax(logits)
                 labels = ['negative','neutral','positive']
                 idx = int(max(range(len(probs)), key=lambda i: probs[i]))
                 return {"label": labels[idx], "score": float(probs[idx])}
 
+        # 2) VADER fallback
         if self.vader is not None:
             scores = self.vader.polarity_scores(text)
-            # compound en [-1,1]
-            c = scores['compound']
+            c = scores['compound']  # [-1,1]
             if c >= 0.05:
                 return {"label": "positive", "score": float((c+1)/2)}
             elif c <= -0.05:
-                return {"label": "negative", "score": float((1-c)/2)}  # escala simple
+                return {"label": "negative", "score": float((1-c)/2)}
             else:
                 return {"label": "neutral", "score": float(1-abs(c))}
 
-        # Fallback trivial si nada está instalado
+        # 3) Last resort
         return {"label": "neutral", "score": 0.5}
 
     def batch_predict(self, texts: List[str]) -> List[Dict]:

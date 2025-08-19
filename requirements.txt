@@ -4,6 +4,11 @@ python-dotenv>=1.0
 numpy>=1.26
 scikit-learn>=1.4
 vaderSentiment>=3.3.2
-# Opcional (comentable en desarrollo temprano)
 transformers>=4.41
 torch>=2.2
+Optional clustering extras:
+scikit-fuzzy>=0.4.2   # for Fuzzy C-Means (FCM)
+bertopic>=0.16
+umap-learn>=0.5.5
+hdbscan>=0.8.33
+sentence-transformers>=2.7

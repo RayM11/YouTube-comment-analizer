@@ -5,12 +5,10 @@ MENTION_RE = re.compile(r'@\w+')
 
 
 def preprocess_text(text: str) -> str:
-    # Minúsculas
+    """Lowercase, strip URLs/mentions, normalize whitespace."""
     t = text.strip().lower()
-    # Quitar URLs y menciones
     t = URL_RE.sub(' ', t)
     t = MENTION_RE.sub(' ', t)
-    # Normalización simple de espacios
     t = re.sub(r'\s+', ' ', t)
     return t
 

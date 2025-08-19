@@ -50,6 +50,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
 
 DATABASES = {
     'default': {
@@ -60,7 +61,7 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = []
 
-LANGUAGE_CODE = 'es'
+LANGUAGE_CODE = 'en'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
@@ -68,13 +69,12 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 REST_FRAMEWORK = {
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-    ],
-    'DEFAULT_PARSER_CLASSES': [
-        'rest_framework.parsers.JSONParser',
-    ],
+    'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
+    'DEFAULT_PARSER_CLASSES': ['rest_framework.parsers.JSONParser'],
 }
 
-# Config para pipelines
-USE_TRANSFORMERS = os.getenv("USE_TRANSFORMERS", "false").lower() == "true"
+# Limits and analysis config
+MAX_COMMENTS = int(os.getenv("MAX_COMMENTS", 100))
+MAX_COMMENT_LENGTH = int(os.getenv("MAX_COMMENT_LENGTH", 500))
+CLUSTER_REPRESENTATIVES = int(os.getenv("CLUSTER_REPRESENTATIVES", 3))
+SENTIMENT_MODEL = os.getenv("SENTIMENT_MODEL", "cardiffnlp/twitter-xlm-roberta-base-sentiment")
